@@ -23,13 +23,13 @@ class Buffer:
         #Casting type of actions
         self.actions = np.zeros(self.buffer_space)
         self.old_log_probs = np.zeros(self.buffer_space)
-        self.returns = torch.zeros(self.buffer_space)
-        self.adv = torch.zeros(self.buffer_space)
-        self.rewards = torch.zeros(self.buffer_space)
-        self.values = torch.zeros(self.buffer_space)
-        self.dones = torch.zeros(self.buffer_space)
+        self.returns = np.zeros(self.buffer_space)
+        self.adv = np.zeros(self.buffer_space)
+        self.rewards = np.zeros(self.buffer_space)
+        self.values = np.zeros(self.buffer_space)
+        self.dones = np.zeros(self.buffer_space)
 
-
+    #Insert datas in buffer
     def insert(self, obs:np.array, action:np.array, old_log_prob:np.array,  reward:np.array, value:np.array, dones:np.array, target_regime:np.array):
         self.obs[self.slice] = obs
         self.actions[self.slice] = action
@@ -39,6 +39,7 @@ class Buffer:
         self.dones[self.slice] = dones
         self.slice += 1
 
+    #Insert return and the advantage in buffer
     def insert_returns(self, returns:np.array, adv:np.array):
         self.returns[:] = returns
         self.adv[:] = adv

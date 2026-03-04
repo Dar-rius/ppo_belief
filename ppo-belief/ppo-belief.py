@@ -2,9 +2,11 @@ import torch
 from torch import nn
 import Tensor
 from torch.optim import Optimizer 
+from typing import Any
 
 class PPOTrainer:
     def __init__(self,
+        model: Any,
         lr:float=3e-4, 
         gamma:float=0.99, 
         gae_lambda:float=0.95, 
@@ -28,12 +30,17 @@ class PPOTrainer:
         #Device where tensor will be run
         self.device = device
 
-    def compute_gae(self, rewards:float, values:Tensor, last_value:Tensor, dones:Tensor) -> tuple[Tensor]:
+    def compute_gae(self, 
+        rewards:np.array, 
+        values:np.array,
+        last_value:np.array, 
+        dones:np.array
+        ) -> tuple[np.array, np.array]:
         gae: float = 0.0
         mask = 1.0 - dones
-        next_values = torch.cat((values[1:], last_value), 0)
-        total_size = rewards.size(0)
-        advantages = torch.zeros_like(rewards)
+        next_values = np.concatenate((values[1:], last_value), axis=0)
+        total_size = rewards.shape[0]
+        advantages = np.zeros_like(rewards)
         delta = rewards + self.gamma * next_values * mask - values
         for step in reversed(range(total_size)):
             gae = delta[step] + self.gamma * self.gae_lambda * mask[step] * gae
