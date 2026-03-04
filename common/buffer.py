@@ -29,7 +29,6 @@ class Buffer:
         self.values = torch.zeros(self.buffer_space)
         self.dones = torch.zeros(self.buffer_space)
 
-    def add_var(self, )
 
     def insert(self, obs:np.array, action:np.array, old_log_prob:np.array,  reward:np.array, value:np.array, dones:np.array, target_regime:np.array):
         self.obs[self.slice] = obs
