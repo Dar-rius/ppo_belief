@@ -20,6 +20,7 @@ class Buffer:
         self.buffer_space = buffer_space
         self.device = device
         self.obs = np.zeros(self.buffer_space, 1)
+        self.target = np.zeros(self.buffer_space, 1)
         #Casting type of actions
         self.actions = np.zeros(self.buffer_space)
         self.old_log_probs = np.zeros(self.buffer_space)
@@ -30,8 +31,9 @@ class Buffer:
         self.dones = np.zeros(self.buffer_space)
 
     #Insert datas in buffer
-    def insert(self, obs:np.array, action:np.array, old_log_prob:np.array,  reward:np.array, value:np.array, dones:np.array, target_regime:np.array):
+    def insert(self, obs:np.array, target:np.array, action:np.array, old_log_prob:np.array,  reward:np.array, value:np.array, dones:np.array, target_regime:np.array):
         self.obs[self.slice] = obs
+        self.target[self.slice] = target
         self.actions[self.slice] = action
         self.old_log_probs[self.slice] = old_log_prob
         self.rewards[self.slice] = reward
@@ -46,9 +48,8 @@ class Buffer:
     
     # sampling data
     def get_all(self) -> tuple:
-        return (self.obs, self.actions, self.old_log_probs,
-                self.returns, self.adv, self.rewards, 
-                self.values, self.dones)
+        return (self.obs, self.target, self.actions, self.old_log_probs,
+                self.returns, self.adv, self.rewards, self.values, self.dones)
 
     # Delete all data
     def clear(self):
