@@ -15,7 +15,7 @@ class Buffer:
     8 -> Dones
     9 -> Target Regime
     """
-    def __init__(self, obs_space:int, buffer_space:int, device:str="cpu"):
+    def __init__(self, buffer_space:int, device:str="cpu"):
         self.slice: int = 0
         self.buffer_space = buffer_space
         self.device = device
