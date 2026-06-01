@@ -1,27 +1,12 @@
 import torch
-from torch import Tensor
 import numpy as np
 
 class Buffer:
-    """
-    0 -> Micro State 
-    1 -> Macro State
-    2 -> Action
-    3 -> Old Log Probs 
-    4 -> Returns
-    5 -> Advantage
-    6 -> Reward
-    7 -> Value
-    8 -> Dones
-    9 -> Target Regime
-    """
-    def __init__(self, buffer_space:int, device:str="cpu"):
+    def __init__(self, buffer_space:int):
         self.slice: int = 0
         self.buffer_space = buffer_space
-        self.device = device
         self.obs = np.zeros(self.buffer_space, 1)
         self.target = np.zeros(self.buffer_space, 1)
-        #Casting type of actions
         self.actions = np.zeros(self.buffer_space)
         self.old_log_probs = np.zeros(self.buffer_space)
         self.returns = np.zeros(self.buffer_space)
@@ -51,6 +36,16 @@ class Buffer:
         return (self.obs, self.target, self.actions, self.old_log_probs,
                 self.returns, self.adv, self.rewards, self.values, self.dones)
 
-    # Delete all data
+    # reset the slicing of arrays
     def clear(self):
         self.slice = 0
+
+    # convert all data from numpy to tensor
+    def convert_array_to_tensor(self, device="cpu"):
+        self.obs = torch.from_numpy(self.obs).to(device)
+        self.target = torch.from_numpy(self.target).to(device)
+        self.actions = torch.from_numpy(self.actions).to(device)
+        self.old_log_probs = torch.from_numpy(self.old_log_probs).to(device)
+        self.rewards = torch.from_numpy(self.rewards).to(device)
+        self.values = torch.from_numpy(self.values).to(device)
+        self.dones = torch.from_numpy(self.dones).to(device)
