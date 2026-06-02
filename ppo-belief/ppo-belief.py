@@ -16,7 +16,7 @@ class PPOTrainer:
                 gae_lambda:float=0.95,
                 clip_eps:float=0.1,
                 value_coef:float=0.5,
-                belief_coef:float=0.1,
+                belief_coef:float=0.09,
                 ent_coef:float=0.02,
                 device:str="cpu"
         ):
@@ -93,7 +93,7 @@ class PPOTrainer:
                 policy_loss = -torch.min(surr1, surr2).mean()
                 # Loss Value (Critic) - MSE
                 value_loss = self.value_eval_loss(new_values.flatten(), returns.flatten())
-                # Loss Belief (Auxiliary) - Cross Entropy
+                # Loss Belief (Auxiliary)
                 belief_loss = self.belief_eval_loss(belief_logits, target.flatten().long())
                 entropy_loss = dist_entropy.mean()
                 # Total Loss
