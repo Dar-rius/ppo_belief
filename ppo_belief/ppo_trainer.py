@@ -1,28 +1,34 @@
 import torch
+import numpy as np
 from torch import nn
 from torch import Tensor
-from torch.optim import Optimizer 
-import numpy as np
+from torch.optim import Optimizer
+from torch import optim
 from .common.buffer import Buffer 
+from torch.nn.modules.loss import _Loss
+
 
 class PPOTrainer:
     def __init__(self,
                 model: nn.Module,
-                optimizer: Optimizer,
-                belief_eval_loss = nn.CrossEntropyLoss(),
-                value_eval_loss = nn.MSELoss(),
+                belief_eval_loss:_Loss = nn.CrossEntropyLoss(),
+                value_eval_loss: _Loss = nn.MSELoss(),
                 lr:float=3e-5,
+                optimizer: Optimizer = None,
                 gamma:float=0.99,
                 gae_lambda:float=0.95,
                 clip_eps:float=0.1,
                 value_coef:float=0.5,
                 belief_coef:float=0.09,
-                ent_coef:float=0.02,
+                ent_coef:float=0.01,
                 device:str="cpu"
         ):
         self.lr = lr
         self.model = model
-        self.optimizer = optimizer
+        if optimizer is None:
+            self.optimizer = optim.Adam(model.parameters(), lr=self.lr)
+        else:
+            self.optimizer = optimizer
         self.belief_eval_loss = belief_eval_loss
         self.value_eval_loss = value_eval_loss
         # Hyperparams PPO

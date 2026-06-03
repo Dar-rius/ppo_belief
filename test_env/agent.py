@@ -35,10 +35,6 @@ class WorldModel(nn.Module):
                 nn.init.orthogonal_(layer.weight, gain=1)
                 nn.init.constant_(layer.bias, 0.0)
 
-        actor_out = self.actor_layer[-1]
-        nn.init.orthogonal_(actor_out.weight, gain=1.0)
-        nn.init.constant_(actor_out.bias, 0.0)
-
     def foward(self, obs:Tensor):
         feature_extracted = self.feature_extractor(obs)
         actor_logits = self.actor_head(feature_extracted)
