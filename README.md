@@ -1,5 +1,7 @@
 # ppo_belief
 
+> **Note:** This project is currently in active development. A research paper describing the approach and results is coming soon.
+
 A model-based variant of PPO that transforms the standard "model-free" algorithm into a "model-based" one by introducing an auxiliary belief head. The agent simultaneously learns a policy, value function, and a world model that predicts observation deltas and rewards.
 
 ## Core Idea
