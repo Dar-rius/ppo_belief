@@ -5,6 +5,8 @@ build/
 dist/
 wheels/
 *.egg-info
+wandb/
 
 # Virtual environments
 .venv
+*.gif

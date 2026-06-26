@@ -5,8 +5,8 @@ class Buffer:
     def __init__(self, buffer_space:int, obs_space:int):
         self.slice: int = 0
         self.buffer_space = buffer_space
-        self.obs = np.zeros(self.buffer_space, obs_space)
-        self.target = np.zeros(self.buffer_space, obs_space)
+        self.obs = np.zeros((self.buffer_space, obs_space))
+        self.target = np.zeros((self.buffer_space, obs_space))
         self.action = np.zeros(self.buffer_space)
         self.old_log_prob = np.zeros(self.buffer_space)
         self.return_ = np.zeros(self.buffer_space)
@@ -16,7 +16,7 @@ class Buffer:
         self.done = np.zeros(self.buffer_space)
 
     #Insert datas in buffer
-    def insert(self, obs:np.array, target:np.array, action:np.array, old_log_prob:np.array,  reward:np.array, value:np.array, done:np.array, target_regime:np.array):
+    def insert(self, obs:np.array, target:np.array, action:np.array, old_log_prob:np.array,  reward:np.array, value:np.array, done:np.array):
         self.obs[self.slice] = obs
         self.target[self.slice] = target
         self.action[self.slice] = action
@@ -32,20 +32,19 @@ class Buffer:
         self.adv[:] = adv
     
     # sampling data
-    def get_all(self) -> tuple:
-        return (self.obs, self.target, self.action, self.old_log_prob,
-                self.return_, self.adv, self.reward, self.value, self.done)
+    def get_all(self, device="cpu") -> tuple:
+        return (
+                torch.tensor(self.obs, dtype=torch.float32, device=device),
+                torch.tensor(self.target, dtype=torch.float32, device=device),
+                torch.tensor(self.action, dtype=torch.long, device=device),
+                torch.tensor(self.old_log_prob, dtype=torch.float32, device=device),
+                torch.tensor(self.return_, dtype=torch.float32, device=device),
+                torch.tensor(self.adv, dtype=torch.float32, device=device),
+                torch.tensor(self.reward, dtype=torch.float32, device=device),
+                torch.tensor(self.value, dtype=torch.float32, device=device),
+                torch.tensor(self.done, dtype=torch.long, device=device)
+                )
 
     # reset the slicing of arrays
     def clear(self):
         self.slice = 0
-
-    # convert all data from numpy to tensor
-    def convert_array_to_tensor(self, device="cpu"):
-        self.obs = torch.from_numpy(self.obs).to(device)
-        self.target = torch.from_numpy(self.target).to(device)
-        self.action = torch.from_numpy(self.action).to(device)
-        self.old_log_prob = torch.from_numpy(self.old_log_prob).to(device)
-        self.reward = torch.from_numpy(self.reward).to(device)
-        self.value = torch.from_numpy(self.value).to(device)
-        self.done = torch.from_numpy(self.done).to(device)
