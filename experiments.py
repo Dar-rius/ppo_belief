@@ -36,9 +36,10 @@ def ppo_belief_loss(agent: BaseAgent, params: dict, buffers: dict, hyper_params:
 
     idx_adv = advantages.view(-1)
     idx_return = returns.view(-1)
-    idx_derivate = derivated.view(-1)
+    idx_derivate = derivated
+    idx_done = done.view(-1)
     new_values = new_values.view(-1)
-    new_belief = new_belief.view(-1)
+    new_belief = new_belief
     old_values = old_values.view(-1)
     old_log_prob = old_log_prob.view(-1)
 
@@ -57,7 +58,7 @@ def ppo_belief_loss(agent: BaseAgent, params: dict, buffers: dict, hyper_params:
 
     #Belief
     belief_error = (new_belief - idx_derivate).pow(2).mean(dim=-1)
-    mask_ = 1.0 - done
+    mask_ = 1.0 - idx_done
     belief_loss = (belief_error * mask_).sum() / mask_.sum()
 
     entropy_loss = dist_entropy.mean()
@@ -153,10 +154,10 @@ scheduler = LambdaLR(optimizer, lambda step_: 1.0 - (step_ / cfg.num_update))
 log = create_logger(cfg, algo_config, use_wandb=True)
 reward_tensor = torch.zeros(cfg.num_envs, device=cfg.device)
 state, _ = env.reset(seed = seed)
+episodic_reward = []
 
 # Train PPO-Belief
 for step in tqdm(range(cfg.num_update)):
-    episodic_reward = []
     metrics = {}
     for _ in range(cfg.rollout_steps):
         state_processed = processing_state(state)
@@ -165,8 +166,7 @@ for step in tqdm(range(cfg.num_update)):
         outputs.pop("info")
         outputs = parse_dict_to_tensor(outputs)
         next_state = outputs.pop("next_state")
-        mask = 1.0 - outputs["terminated"]
-        outputs["delta"] = (next_state - state_processed) * mask
+        outputs["delta"] = (next_state - state_processed)
         buffer.insert(**outputs)
         reward_tensor += outputs["reward"]
         finished = outputs["terminated"] > 0
