@@ -22,6 +22,7 @@ def ppo_belief_loss(agent: BaseAgent, params: dict, buffers: dict, hyper_params:
     advantages =  data["adv_norm"][idx]
     returns  = data["return"][idx]
     derivated = data["delta"][idx]
+    done = data["terminated"][idx]
 
     value_coef = hyper_params.value_coef
     ent_coef = hyper_params.ent_coef
@@ -54,7 +55,11 @@ def ppo_belief_loss(agent: BaseAgent, params: dict, buffers: dict, hyper_params:
     else:
         value_loss = 0.5 * nn.functional.mse_loss(new_values, idx_return)
 
-    belief_loss = nn.functional.mse_loss(new_belief, idx_derivate)
+    #Belief
+    belief_error = (new_belief - idx_derivate).pow(2).mean(dim=-1)
+    mask_ = 1.0 - done
+    belief_loss = (belief_error * mask_).sum() / mask_.sum()
+
     entropy_loss = dist_entropy.mean()
 
     loss = policy_loss + (value_coef * value_loss) + (belief_coef * belief_loss) - (ent_coef * entropy_loss)
@@ -66,12 +71,13 @@ def ppo_belief_loss(agent: BaseAgent, params: dict, buffers: dict, hyper_params:
 
 ## Agent architecture
 class Agent(BaseAgent):
-    def __init__(self, obs_n, act_n, hidden_dim=64):
+    def __init__(self, obs_n, act_n, hidden_dim=64, is_discrete=False):
         super().__init__()
         self.obs_n = obs_n
         self.act_n = act_n
         self.hidden_dim = hidden_dim
-        self.log_std = nn.Parameter(torch.zeros(self.act_n))
+        self.is_discrete = is_discrete
+        if not is_discrete:  self.log_std = nn.Parameter(torch.zeros(self.act_n))
         # Feature Extractor
         self.extract_layer = nn.Sequential(
                 nn.Linear(self.obs_n, self.hidden_dim),
@@ -85,6 +91,8 @@ class Agent(BaseAgent):
         self.critic = nn.Linear(self.hidden_dim,  1)
         # Belief
         self.belief = nn.Linear(self.hidden_dim, self.obs_n)
+
+        self.apply(self._orthogonal_init)
 
     def _orthogonal_init(self, module: nn.Module):
         """Apply orthogonal weight initialization with gain based on layer role."""
@@ -111,6 +119,8 @@ class Agent(BaseAgent):
 
     def build_distribution(self, logits: torch.Tensor):
         """Build a torch distribution from logits (Categorical or Normal)."""
+        if self.is_discrete:
+            return torch.distributions.Categorical(logits=logits)
         log_std_clamped = torch.clamp(self.log_std, min=-3.0, max=1.0)
         std = log_std_clamped.exp().expand_as(logits)
         return torch.distributions.Normal(logits, std)
@@ -124,13 +134,14 @@ class Agent(BaseAgent):
         value = value.squeeze(-1)
         return {"action": action, "log_prob": log_prob, "entropy":dist_entropy, "value":value}
 
-cfg = TrainConfig(project_name="ppo-belief", model_name="belief-model", timestamp=1_000_000, num_envs=2)
+cfg = TrainConfig(project_name="ppo-belief", model_name="belief-model", timestamp=1_000_000, num_envs=4)
 cfg.device = torch.device("cpu")
 algo_config = AlgoConfig(belief_coef = 0.2, ent_coef=0.0)
-seed = set_seed(89, num_envs = cfg.num_envs)
-env = vectorize_env("BipedalWalker-v3", num_envs = cfg.num_envs)
-obs_dim, act_dim, obs_n, act_n, _ = get_obs_act(env)
-belief_agent = Agent(obs_n, act_n)
+run_seed = 89
+seed = set_seed(run_seed, num_envs = cfg.num_envs)
+env = vectorize_env("Ant-v5", num_envs = cfg.num_envs)
+obs_dim, act_dim, obs_n, act_n, is_discrete = get_obs_act(env)
+belief_agent = Agent(obs_n, act_n, is_discrete=is_discrete)
 buffer = Buffer(capacity=cfg.rollout_steps,
                 num_envs=cfg.num_envs,
                 schema={"state": obs_dim, "delta": obs_dim, "action": act_dim,
@@ -143,6 +154,7 @@ log = create_logger(cfg, algo_config, use_wandb=True)
 reward_tensor = torch.zeros(cfg.num_envs, device=cfg.device)
 state, _ = env.reset(seed = seed)
 
+# Train PPO-Belief
 for step in tqdm(range(cfg.num_update)):
     episodic_reward = []
     metrics = {}
@@ -153,7 +165,8 @@ for step in tqdm(range(cfg.num_update)):
         outputs.pop("info")
         outputs = parse_dict_to_tensor(outputs)
         next_state = outputs.pop("next_state")
-        outputs["delta"] = next_state - state_processed
+        mask = 1.0 - outputs["terminated"]
+        outputs["delta"] = (next_state - state_processed) * mask
         buffer.insert(**outputs)
         reward_tensor += outputs["reward"]
         finished = outputs["terminated"] > 0
@@ -175,15 +188,18 @@ for step in tqdm(range(cfg.num_update)):
         mean_reward = float(np.mean(recent))
     else:
         mean_reward = 0.0
-    metrics = {"train/mean_episodic_reward": mean_reward}
+    metrics = {"train/mean_episode_reward": mean_reward}
     for k, v in losses.items(): metrics[f"train/{k}"] = v
     log(metrics, step)
     buffer.clear()
 
 env.close()
 log.close()
-try_agent("BipedalWalker-v3", belief_agent, cfg, gif_path="belief-mountain_car.gif")
+try_agent("Ant-v5", belief_agent, cfg, gif_path="belief-ant.gif")
 
-trainer = easy_train_ppo("BipedalWalker-v3", cfg, algo_config)
+#Train PPO-Standard
+cfg = TrainConfig(project_name="ppo-belief", model_name="ppo-model", timestamp=1_000_000, num_envs=4)
+cfg.device = torch.device("cpu")
+trainer = easy_train_ppo("Ant-v5", cfg, algo_config, seed=run_seed)
 trainer.train(use_wandb=True)
-trainer.try_agent(gif_path="ppo-mountain_car.gif")
+trainer.try_agent(gif_path="ppo-ant.gif")
