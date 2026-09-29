@@ -67,3 +67,8 @@ Observation ─> Encoder ┤
                        ├──────────── Critic ───────> Value
                        │
 Action ────────────────┴─> Belief Head ───────────> Δ Observation
+```
+
+## Licence
+
+MIT - see [LICENSE](LICENSE) for details.
