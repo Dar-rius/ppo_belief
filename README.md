@@ -5,7 +5,7 @@
 
 PPO-Belief investigates a simple question:
 
-> **Can an auxiliary transition-prediction objective change how PPO learns in
+> **Can an auxiliary transition prediction objective change how PPO learns in
 > continuous-control environments?**
 
 The project extends PPO with an auxiliary prediction head trained to predict
@@ -51,23 +51,17 @@ representation during training.
 
 The PPO-Belief agent contains:
 
-- **Shared feature extractor** — two 64-unit `Tanh` layers
-- **Actor head** — produces policy outputs
-- **Critic head** — estimates the state value
-- **Belief head** — predicts observation deltas from the shared features and action
+- **Shared feature extractor:** two 64-unit `Tanh` layers
+- **Actor head:** produces policy outputs
+- **Critic head:** estimates the state value
+- **Belief head:** predicts observation deltas from the shared features and action
 
-For continuous-control environments, the actor parameterizes a Normal
-distribution with a learned state-independent log standard deviation.
+For continuous control environments, the actor parameterizes a Normal
+distribution with a learned state independent log standard deviation.
 
 Conceptually:
 
-```text
-                       ┌──────────── Actor ────────> Policy
-Observation ─> Encoder ┤
-                       ├──────────── Critic ───────> Value
-                       │
-Action ────────────────┴─> Belief Head ───────────> Δ Observation
-```
+![Agent architecture](./belief.png)
 
 ## Licence
 
